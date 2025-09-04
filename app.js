@@ -142,14 +142,6 @@ app.post('/api/wechat/userinfo', (req, res) => {
   }
 });
 
-// 健康检查接口
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: '服务运行正常',
-    timestamp: new Date().toISOString()
-  });
-});
 
 // 404处理
 app.use('*', (req, res) => {
@@ -171,7 +163,6 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`服务器运行在端口 ${PORT}`);
-  console.log(`健康检查: http://localhost:${PORT}/health`);
   console.log(`微信登录接口: POST http://localhost:${PORT}/api/wechat/login`);
 });
 
