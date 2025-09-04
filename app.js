@@ -4,7 +4,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 
 // 中间件配置
 app.use(cors());
