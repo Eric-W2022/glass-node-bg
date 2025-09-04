@@ -4,6 +4,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const UserRepository = require('./src/repositories/UserRepository');
 const RecordRepository = require('./src/repositories/RecordRepository');
+const { testConnection } = require('./src/config/database');
 
 const app = express();
 const PORT = process.env.PORT || 9000;
@@ -286,11 +287,14 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`服务器运行在端口 ${PORT}`);
   console.log(`微信登录接口: POST http://localhost:${PORT}/api/wechat/login`);
   console.log(`记录接口: POST http://localhost:${PORT}/api/record`);
   console.log(`查询记录接口: GET http://localhost:${PORT}/api/records`);
+  
+  // 测试数据库连接
+  await testConnection();
 });
 
 module.exports = app;

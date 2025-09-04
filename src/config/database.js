@@ -5,7 +5,7 @@ require('dotenv').config();
 const dbConfig = {
   host: process.env.DB_HOST || 'gz-cdb-6kgcteld.sql.tencentcdb.com',
   port: process.env.DB_PORT || 63181,
-  user: process.env.DB_USER || 'root',
+  user: process.env.DB_USER || 'glass',
   password: process.env.DB_PASSWORD || 'STC89c51',
   database: process.env.DB_NAME || 'glass',
   charset: 'utf8mb4',
@@ -23,12 +23,26 @@ const pool = mysql.createPool(dbConfig);
 // 测试数据库连接
 async function testConnection() {
   try {
+    console.log('尝试连接数据库...', {
+      host: dbConfig.host,
+      port: dbConfig.port,
+      user: dbConfig.user,
+      database: dbConfig.database
+    });
     const connection = await pool.getConnection();
     console.log('数据库连接成功');
     connection.release();
     return true;
   } catch (error) {
-    console.error('数据库连接失败:', error.message);
+    console.error('数据库连接失败:', {
+      message: error.message,
+      code: error.code,
+      errno: error.errno,
+      host: dbConfig.host,
+      port: dbConfig.port,
+      user: dbConfig.user,
+      database: dbConfig.database
+    });
     return false;
   }
 }
