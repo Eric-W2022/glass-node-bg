@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const crypto = require('crypto');
+const UserRepository = require('./src/repositories/UserRepository');
 
 const app = express();
 const PORT = process.env.PORT || 9000;
@@ -63,6 +64,26 @@ app.post('/api/wechat/login', async (req, res) => {
         errorCode: errcode,
         errorMsg: errmsg
       });
+    }
+
+    // 查询数据库中是否存在该用户
+    let user = await UserRepository.findByOpenid(openid);
+    
+    if (!user) {
+      // 用户不存在，创建新用户（只填openid）
+      const userId = await UserRepository.create({
+        openid: openid,
+        unionid: unionid || null,
+        session_key: session_key
+      });
+      console.log(`新用户创建成功，ID: ${userId}, openid: ${openid}`);
+    } else {
+      // 用户存在，更新session_key
+      await UserRepository.update(openid, {
+        session_key: session_key,
+        unionid: unionid || user.unionid
+      });
+      console.log(`用户已存在，更新session_key，openid: ${openid}`);
     }
 
     res.json({
