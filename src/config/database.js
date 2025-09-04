@@ -5,7 +5,7 @@ require('dotenv').config();
 const dbConfig = {
   host: process.env.DB_HOST || 'gz-cdb-6kgcteld.sql.tencentcdb.com',
   port: process.env.DB_PORT || 63181,
-  user: process.env.DB_USER || 'glass',
+  user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || 'STC89c51',
   database: process.env.DB_NAME || 'glass',
   charset: 'utf8mb4',
