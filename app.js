@@ -85,28 +85,6 @@ app.post('/api/wechat/login', async (req, res) => {
   }
 });
 
-// 验证openid接口
-app.post('/api/wechat/verify', (req, res) => {
-  const { openid } = req.body;
-  
-  if (!openid) {
-    return res.status(400).json({
-      success: false,
-      message: '缺少openid参数'
-    });
-  }
-
-  // 这里应该从数据库中验证openid是否存在
-  // 简化处理，实际项目中需要实现openid验证逻辑
-  res.json({
-    success: true,
-    message: 'OpenID验证成功',
-    data: {
-      valid: true,
-      openid
-    }
-  });
-});
 
 // 获取用户信息接口（需要解密微信加密数据）
 app.post('/api/wechat/userinfo', (req, res) => {
