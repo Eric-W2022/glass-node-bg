@@ -3,6 +3,7 @@ const cors = require('cors');
 const axios = require('axios');
 const crypto = require('crypto');
 const UserRepository = require('./src/repositories/UserRepository');
+const RecordRepository = require('./src/repositories/RecordRepository');
 
 const app = express();
 const PORT = process.env.PORT || 9000;
@@ -141,6 +142,68 @@ app.post('/api/wechat/userinfo', (req, res) => {
   }
 });
 
+// 记录接口
+app.post('/api/record', async (req, res) => {
+  try {
+    const { openid, count } = req.body;
+    
+    if (!openid) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少openid参数'
+      });
+    }
+    
+    if (count === undefined || count === null) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少count参数'
+      });
+    }
+
+    // 检查用户是否存在
+    const user = await UserRepository.findByOpenid(openid);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在，请先登录'
+      });
+    }
+
+    // 查询是否已有记录
+    let record = await RecordRepository.findByOpenid(openid);
+    
+    if (record) {
+      // 更新现有记录
+      await RecordRepository.update(record.id, { count: count });
+      console.log(`记录更新成功，openid: ${openid}, count: ${count}`);
+    } else {
+      // 创建新记录
+      const recordId = await RecordRepository.create({
+        openid: openid,
+        count: count
+      });
+      console.log(`记录创建成功，ID: ${recordId}, openid: ${openid}, count: ${count}`);
+    }
+
+    res.json({
+      success: true,
+      message: '记录保存成功',
+      data: {
+        openid,
+        count
+      }
+    });
+
+  } catch (error) {
+    console.error('记录保存错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误',
+      error: error.message
+    });
+  }
+});
 
 // 404处理
 app.use('*', (req, res) => {
@@ -163,6 +226,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`服务器运行在端口 ${PORT}`);
   console.log(`微信登录接口: POST http://localhost:${PORT}/api/wechat/login`);
+  console.log(`记录接口: POST http://localhost:${PORT}/api/record`);
 });
 
 module.exports = app;
