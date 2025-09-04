@@ -125,7 +125,7 @@ class UserRepository {
   // 获取所有用户
   static async findAll(limit = 100, offset = 0) {
     const sql = 'SELECT * FROM user ORDER BY create_time DESC LIMIT ? OFFSET ?';
-    const users = await query(sql, [limit, offset]);
+    const users = await query(sql, [parseInt(limit), parseInt(offset)]);
     return users.map(user => User.fromDbData(user));
   }
 

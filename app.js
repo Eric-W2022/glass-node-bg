@@ -294,7 +294,12 @@ app.listen(PORT, async () => {
   console.log(`查询记录接口: GET http://localhost:${PORT}/api/records`);
   
   // 测试数据库连接
-  await testConnection();
+  const dbConnected = await testConnection();
+  if (dbConnected) {
+    console.log('✅ 数据库连接正常');
+  } else {
+    console.log('❌ 数据库连接失败');
+  }
 });
 
 module.exports = app;

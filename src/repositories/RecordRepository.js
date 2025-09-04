@@ -103,14 +103,14 @@ class RecordRepository {
   // 获取所有记录
   static async findAll(limit = 100, offset = 0) {
     const sql = 'SELECT * FROM records WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    const records = await query(sql, [limit, offset]);
+    const records = await query(sql, [parseInt(limit), parseInt(offset)]);
     return records.map(record => Record.fromDbData(record));
   }
 
   // 根据openid获取记录列表
   static async findByOpenidList(openid, limit = 100, offset = 0) {
     const sql = 'SELECT * FROM records WHERE openid = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    const records = await query(sql, [openid, limit, offset]);
+    const records = await query(sql, [openid, parseInt(limit), parseInt(offset)]);
     return records.map(record => Record.fromDbData(record));
   }
 
