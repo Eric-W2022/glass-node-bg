@@ -7,7 +7,7 @@ const dbConfig = {
   port: process.env.DB_PORT || 63181,
   user: process.env.DB_USER || 'glass',
   password: process.env.DB_PASSWORD || 'STC89c51',
-  database: process.env.DB_NAME || 'glass_db',
+  database: process.env.DB_NAME || 'glass',
   charset: 'utf8mb4',
   timezone: '+08:00',
   acquireTimeout: 60000,
