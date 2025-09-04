@@ -65,17 +65,13 @@ app.post('/api/wechat/login', async (req, res) => {
       });
     }
 
-    // 生成自定义token（这里简化处理，实际项目中应该使用JWT等）
-    const token = crypto.createHash('md5').update(openid + session_key + Date.now()).digest('hex');
-
     res.json({
       success: true,
       message: '登录成功',
       data: {
         openid,
         session_key,
-        unionid: unionid || null,
-        token
+        unionid: unionid || null
       }
     });
 
@@ -89,24 +85,25 @@ app.post('/api/wechat/login', async (req, res) => {
   }
 });
 
-// 验证token接口
+// 验证openid接口
 app.post('/api/wechat/verify', (req, res) => {
-  const { token } = req.body;
+  const { openid } = req.body;
   
-  if (!token) {
+  if (!openid) {
     return res.status(400).json({
       success: false,
-      message: '缺少token参数'
+      message: '缺少openid参数'
     });
   }
 
-  // 这里应该从数据库或缓存中验证token
-  // 简化处理，实际项目中需要实现token验证逻辑
+  // 这里应该从数据库中验证openid是否存在
+  // 简化处理，实际项目中需要实现openid验证逻辑
   res.json({
     success: true,
-    message: 'Token验证成功',
+    message: 'OpenID验证成功',
     data: {
-      valid: true
+      valid: true,
+      openid
     }
   });
 });

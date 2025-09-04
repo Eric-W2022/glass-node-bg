@@ -6,8 +6,10 @@
 
 - 微信小程序登录接口
 - 用户信息解密
-- Token验证
+- OpenID验证
 - 健康检查接口
+- 数据库支持（MySQL）
+- 用户和记录管理
 
 ## 安装依赖
 
@@ -27,6 +29,13 @@ NODE_ENV=development
 # 微信小程序配置
 WECHAT_APPID=wx8c0384130a03beaf
 WECHAT_SECRET=7fb4e763c02c1ce75dc919a30f0c8544
+
+# 数据库配置
+DB_HOST=gz-cdb-6kgcteld.sql.tencentcdb.com
+DB_PORT=63181
+DB_USER=glass
+DB_PASSWORD=STC89c51
+DB_NAME=glass_db
 ```
 
 ## 运行应用
@@ -62,19 +71,19 @@ npm start
   "data": {
     "openid": "用户openid",
     "session_key": "会话密钥",
-    "token": "自定义token"
+    "unionid": "用户unionid"
   }
 }
 ```
 
-### 2. Token验证
+### 2. OpenID验证
 
 **POST** `/api/wechat/verify`
 
 请求参数：
 ```json
 {
-  "token": "用户token"
+  "openid": "用户openid"
 }
 ```
 
@@ -82,9 +91,10 @@ npm start
 ```json
 {
   "success": true,
-  "message": "Token验证成功",
+  "message": "OpenID验证成功",
   "data": {
-    "valid": true
+    "valid": true,
+    "openid": "用户openid"
   }
 }
 ```
