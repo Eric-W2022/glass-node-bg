@@ -205,6 +205,69 @@ app.post('/api/record', async (req, res) => {
   }
 });
 
+// 查询记录接口
+app.get('/api/records', async (req, res) => {
+  try {
+    const { openid, page = 1, limit = 50 } = req.query;
+    
+    // 验证分页参数
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    
+    if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: '分页参数无效，page必须>=1，limit必须在1-100之间'
+      });
+    }
+    
+    const offset = (pageNum - 1) * limitNum;
+    
+    let records;
+    let totalCount = 0;
+    
+    if (openid) {
+      // 查询指定用户的记录
+      records = await RecordRepository.findByOpenidList(openid, limitNum, offset);
+      // 获取该用户的总记录数
+      const allRecords = await RecordRepository.findByOpenidList(openid, 10000, 0);
+      totalCount = allRecords.length;
+    } else {
+      // 查询所有记录
+      records = await RecordRepository.findAll(limitNum, offset);
+      // 获取总记录数（这里简化处理，实际项目中应该有专门的count方法）
+      const allRecords = await RecordRepository.findAll(10000, 0);
+      totalCount = allRecords.length;
+    }
+    
+    const totalPages = Math.ceil(totalCount / limitNum);
+    
+    res.json({
+      success: true,
+      message: '查询成功',
+      data: {
+        records: records,
+        pagination: {
+          currentPage: pageNum,
+          totalPages: totalPages,
+          totalCount: totalCount,
+          limit: limitNum,
+          hasNext: pageNum < totalPages,
+          hasPrev: pageNum > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('查询记录错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误',
+      error: error.message
+    });
+  }
+});
+
 // 404处理
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -227,6 +290,7 @@ app.listen(PORT, () => {
   console.log(`服务器运行在端口 ${PORT}`);
   console.log(`微信登录接口: POST http://localhost:${PORT}/api/wechat/login`);
   console.log(`记录接口: POST http://localhost:${PORT}/api/record`);
+  console.log(`查询记录接口: GET http://localhost:${PORT}/api/records`);
 });
 
 module.exports = app;
