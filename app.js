@@ -171,21 +171,12 @@ app.post('/api/record', async (req, res) => {
       });
     }
 
-    // 查询是否已有记录
-    let record = await RecordRepository.findByOpenid(openid);
-    
-    if (record) {
-      // 更新现有记录
-      await RecordRepository.update(record.id, { count: count });
-      console.log(`记录更新成功，openid: ${openid}, count: ${count}`);
-    } else {
-      // 创建新记录
-      const recordId = await RecordRepository.create({
-        openid: openid,
-        count: count
-      });
-      console.log(`记录创建成功，ID: ${recordId}, openid: ${openid}, count: ${count}`);
-    }
+    // 总是创建新记录
+    const recordId = await RecordRepository.create({
+      openid: openid,
+      count: count
+    });
+    console.log(`记录创建成功，ID: ${recordId}, openid: ${openid}, count: ${count}`);
 
     res.json({
       success: true,
@@ -209,7 +200,7 @@ app.post('/api/record', async (req, res) => {
 // 查询记录接口
 app.get('/api/records', async (req, res) => {
   try {
-    const { openid, page = 1, limit = 50 } = req.query;
+    const { openid, page = 1, limit = 20 } = req.query;
     
     // 验证分页参数
     const pageNum = parseInt(page);
