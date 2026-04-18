@@ -18,6 +18,12 @@ function deviceToResponse(device) {
   };
 }
 
+/** 0/1/2：2 表示两种提醒方式都开启 */
+function isValidReminderMode(mode) {
+  var m = Number(mode);
+  return Number.isFinite(m) && Number.isInteger(m) && m >= 0 && m <= 2;
+}
+
 const app = express();
 const PORT = process.env.PORT || 9000;
 
@@ -383,10 +389,10 @@ app.post('/api/devices', async (req, res) => {
     }
 
     const mode = Number(reminder_mode);
-    if (mode !== 0 && mode !== 1) {
+    if (!isValidReminderMode(mode)) {
       return res.status(400).json({
         success: false,
-        message: 'reminder_mode 只能为 0 或 1'
+        message: 'reminder_mode 只能为 0、1 或 2（2 表示两种提醒方式都开启）'
       });
     }
 
@@ -458,10 +464,10 @@ app.put('/api/devices/:deviceId', async (req, res) => {
     }
     if (reminder_mode !== undefined) {
       const mode = Number(reminder_mode);
-      if (mode !== 0 && mode !== 1) {
+      if (!isValidReminderMode(mode)) {
         return res.status(400).json({
           success: false,
-          message: 'reminder_mode 只能为 0 或 1'
+          message: 'reminder_mode 只能为 0、1 或 2（2 表示两种提醒方式都开启）'
         });
       }
       updateData.reminder_mode = mode;
