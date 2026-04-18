@@ -4,7 +4,19 @@ const axios = require('axios');
 const crypto = require('crypto');
 const UserRepository = require('./src/repositories/UserRepository');
 const RecordRepository = require('./src/repositories/RecordRepository');
+const DeviceRepository = require('./src/repositories/DeviceRepository');
 const { testConnection } = require('./src/config/database');
+
+function deviceToResponse(device) {
+  if (!device) return null;
+  return {
+    device_id: device.device_id,
+    warning_distance_cm: device.warning_distance_cm,
+    reminder_mode: device.reminder_mode,
+    created_at: device.created_at,
+    updated_at: device.updated_at
+  };
+}
 
 const app = express();
 const PORT = process.env.PORT || 9000;
@@ -260,6 +272,226 @@ app.get('/api/records', async (req, res) => {
   }
 });
 
+// 设备列表（未软删）
+app.get('/api/devices', async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+
+    if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: '分页参数无效，page必须>=1，limit必须在1-100之间'
+      });
+    }
+
+    const offset = (pageNum - 1) * limitNum;
+    const devices = await DeviceRepository.findAll(limitNum, offset);
+    const allForCount = await DeviceRepository.findAll(10000, 0);
+    const totalCount = allForCount.length;
+    const totalPages = Math.ceil(totalCount / limitNum);
+
+    res.json({
+      success: true,
+      message: '查询成功',
+      data: {
+        devices: devices.map(deviceToResponse),
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalCount,
+          limit: limitNum,
+          hasNext: pageNum < totalPages,
+          hasPrev: pageNum > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('查询设备列表错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误',
+      error: error.message
+    });
+  }
+});
+
+// 按设备 id 查询单条
+app.get('/api/devices/:deviceId', async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    if (!deviceId || !String(deviceId).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: '设备 id 无效'
+      });
+    }
+
+    const device = await DeviceRepository.findByDeviceId(String(deviceId).trim());
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        message: '设备不存在或已删除'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: '查询成功',
+      data: deviceToResponse(device)
+    });
+  } catch (error) {
+    console.error('查询设备错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误',
+      error: error.message
+    });
+  }
+});
+
+// 添加设备
+app.post('/api/devices', async (req, res) => {
+  try {
+    const { device_id, warning_distance_cm, reminder_mode = 0 } = req.body;
+
+    if (!device_id || !String(device_id).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少 device_id 或为空'
+      });
+    }
+
+    if (
+      warning_distance_cm === undefined ||
+      warning_distance_cm === null ||
+      warning_distance_cm === ''
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少 warning_distance_cm'
+      });
+    }
+
+    const distance = Number(warning_distance_cm);
+    if (!Number.isFinite(distance) || distance < 0 || !Number.isInteger(distance)) {
+      return res.status(400).json({
+        success: false,
+        message: 'warning_distance_cm 须为非负整数（单位：厘米）'
+      });
+    }
+
+    const mode = Number(reminder_mode);
+    if (mode !== 0 && mode !== 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'reminder_mode 只能为 0 或 1'
+      });
+    }
+
+    try {
+      await DeviceRepository.create({
+        device_id: String(device_id).trim(),
+        warning_distance_cm: distance,
+        reminder_mode: mode
+      });
+    } catch (e) {
+      if (e.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({
+          success: false,
+          message: '该设备 id 已存在'
+        });
+      }
+      throw e;
+    }
+
+    const device = await DeviceRepository.findByDeviceId(String(device_id).trim());
+    res.status(201).json({
+      success: true,
+      message: '设备添加成功',
+      data: deviceToResponse(device)
+    });
+  } catch (error) {
+    console.error('添加设备错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误',
+      error: error.message
+    });
+  }
+});
+
+// 按设备 id 更新信息
+app.put('/api/devices/:deviceId', async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const { warning_distance_cm, reminder_mode } = req.body;
+
+    if (!deviceId || !String(deviceId).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: '设备 id 无效'
+      });
+    }
+
+    if (
+      warning_distance_cm === undefined &&
+      reminder_mode === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: '请至少提供 warning_distance_cm 或 reminder_mode 之一'
+      });
+    }
+
+    const updateData = {};
+    if (warning_distance_cm !== undefined) {
+      const distance = Number(warning_distance_cm);
+      if (!Number.isFinite(distance) || distance < 0 || !Number.isInteger(distance)) {
+        return res.status(400).json({
+          success: false,
+          message: 'warning_distance_cm 须为非负整数（单位：厘米）'
+        });
+      }
+      updateData.warning_distance_cm = distance;
+    }
+    if (reminder_mode !== undefined) {
+      const mode = Number(reminder_mode);
+      if (mode !== 0 && mode !== 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'reminder_mode 只能为 0 或 1'
+        });
+      }
+      updateData.reminder_mode = mode;
+    }
+
+    const id = String(deviceId).trim();
+    const ok = await DeviceRepository.update(id, updateData);
+    if (!ok) {
+      return res.status(404).json({
+        success: false,
+        message: '设备不存在、已删除或未变更'
+      });
+    }
+
+    const device = await DeviceRepository.findByDeviceId(id);
+    res.json({
+      success: true,
+      message: '更新成功',
+      data: deviceToResponse(device)
+    });
+  } catch (error) {
+    console.error('更新设备错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误',
+      error: error.message
+    });
+  }
+});
+
 // 404处理
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -283,6 +515,8 @@ app.listen(PORT, async () => {
   console.log(`微信登录接口: POST http://localhost:${PORT}/api/wechat/login`);
   console.log(`记录接口: POST http://localhost:${PORT}/api/record`);
   console.log(`查询记录接口: GET http://localhost:${PORT}/api/records`);
+  console.log(`设备: GET http://localhost:${PORT}/api/devices | GET http://localhost:${PORT}/api/devices/:deviceId`);
+  console.log(`设备: POST http://localhost:${PORT}/api/devices | PUT http://localhost:${PORT}/api/devices/:deviceId`);
   
   // 测试数据库连接
   const dbConnected = await testConnection();
