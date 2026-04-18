@@ -1,8 +1,14 @@
 class Device {
   constructor(data = {}) {
     this.device_id = data.device_id || null;
-    this.warning_distance_cm = data.warning_distance_cm ?? null;
-    this.reminder_mode = data.reminder_mode ?? 0;
+    this.warning_distance_cm =
+      data.warning_distance_cm !== undefined && data.warning_distance_cm !== null
+        ? data.warning_distance_cm
+        : null;
+    this.reminder_mode =
+      data.reminder_mode !== undefined && data.reminder_mode !== null
+        ? data.reminder_mode
+        : 0;
     this.created_at = data.created_at || null;
     this.updated_at = data.updated_at || null;
     this.deleted_at = data.deleted_at || null;

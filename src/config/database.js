@@ -10,9 +10,8 @@ const dbConfig = {
   database: process.env.DB_NAME || 'glass',
   charset: 'utf8mb4',
   timezone: '+08:00',
-  acquireTimeout: 60000,
-  timeout: 60000,
-  reconnect: true,
+  // mysql2 连接池仅支持其文档中的选项；acquireTimeout/timeout/reconnect 会触发告警
+  connectTimeout: 60000,
   connectionLimit: 10,
   queueLimit: 0
 };
