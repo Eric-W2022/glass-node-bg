@@ -37,6 +37,7 @@ function userToPublicResponse(user) {
     city: user.city,
     language: user.language,
     unionid: user.unionid,
+    points: user.points !== undefined && user.points !== null ? user.points : 0,
     create_time: user.create_time,
     update_time: user.update_time,
     last_login_time: user.last_login_time
@@ -50,7 +51,8 @@ const USER_UPDATABLE_FIELDS = [
   'country',
   'province',
   'city',
-  'language'
+  'language',
+  'points'
 ];
 
 const app = express();
@@ -216,7 +218,18 @@ app.put('/api/wechat/user', async (req, res) => {
     for (var i = 0; i < USER_UPDATABLE_FIELDS.length; i++) {
       var key = USER_UPDATABLE_FIELDS[i];
       if (body[key] !== undefined) {
-        updateData[key] = body[key];
+        if (key === 'points') {
+          var pts = Number(body.points);
+          if (!Number.isFinite(pts) || !Number.isInteger(pts) || pts < 0) {
+            return res.status(400).json({
+              success: false,
+              message: 'points（积分）须为非负整数'
+            });
+          }
+          updateData.points = pts;
+        } else {
+          updateData[key] = body[key];
+        }
       }
     }
 
@@ -224,7 +237,7 @@ app.put('/api/wechat/user', async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          '请至少提供一个可更新字段：nickname, avatar_url, gender, country, province, city, language'
+          '请至少提供一个可更新字段：nickname, avatar_url, gender, country, province, city, language, points'
       });
     }
 

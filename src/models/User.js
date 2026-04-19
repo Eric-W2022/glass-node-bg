@@ -13,6 +13,8 @@ class User {
     this.last_login_time = data.last_login_time || null;
     this.session_key = data.session_key || null;
     this.unionid = data.unionid || null;
+    this.points =
+      data.points !== undefined && data.points !== null ? data.points : 0;
   }
 
   // 转换为数据库格式
@@ -30,7 +32,8 @@ class User {
       update_time: this.update_time,
       last_login_time: this.last_login_time,
       session_key: this.session_key,
-      unionid: this.unionid
+      unionid: this.unionid,
+      points: this.points
     };
   }
 
