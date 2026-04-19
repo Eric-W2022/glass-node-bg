@@ -192,6 +192,42 @@ app.post('/api/wechat/userinfo', (req, res) => {
   }
 });
 
+// 通过 openid 查询用户资料（只读）
+app.get('/api/wechat/user', async (req, res) => {
+  try {
+    const openid = req.query.openid;
+
+    if (!openid || !String(openid).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少 openid 参数'
+      });
+    }
+
+    const openidTrimmed = String(openid).trim();
+    const user = await UserRepository.findByOpenid(openidTrimmed);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: '查询成功',
+      data: userToPublicResponse(user)
+    });
+  } catch (error) {
+    console.error('查询用户资料错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误',
+      error: error.message
+    });
+  }
+});
+
 // 通过 openid 更新用户资料（写入 user 表）
 app.put('/api/wechat/user', async (req, res) => {
   try {
@@ -617,7 +653,9 @@ app.use((err, req, res, next) => {
 app.listen(PORT, async () => {
   console.log(`服务器运行在端口 ${PORT}`);
   console.log(`微信登录接口: POST http://localhost:${PORT}/api/wechat/login`);
-  console.log(`更新用户资料: PUT http://localhost:${PORT}/api/wechat/user`);
+  console.log(
+    `用户资料: GET http://localhost:${PORT}/api/wechat/user?openid= | PUT http://localhost:${PORT}/api/wechat/user`
+  );
   console.log(`记录接口: POST http://localhost:${PORT}/api/record`);
   console.log(`查询记录接口: GET http://localhost:${PORT}/api/records`);
   console.log(`设备: GET http://localhost:${PORT}/api/devices | GET http://localhost:${PORT}/api/devices/:deviceId`);
