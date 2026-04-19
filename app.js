@@ -24,6 +24,35 @@ function isValidReminderMode(mode) {
   return Number.isFinite(m) && Number.isInteger(m) && m >= 0 && m <= 2;
 }
 
+/** 返回给前端的用户信息（不含 session_key） */
+function userToPublicResponse(user) {
+  if (!user) return null;
+  return {
+    openid: user.openid,
+    nickname: user.nickname,
+    avatar_url: user.avatar_url,
+    gender: user.gender,
+    country: user.country,
+    province: user.province,
+    city: user.city,
+    language: user.language,
+    unionid: user.unionid,
+    create_time: user.create_time,
+    update_time: user.update_time,
+    last_login_time: user.last_login_time
+  };
+}
+
+const USER_UPDATABLE_FIELDS = [
+  'nickname',
+  'avatar_url',
+  'gender',
+  'country',
+  'province',
+  'city',
+  'language'
+];
+
 const app = express();
 const PORT = process.env.PORT || 9000;
 
@@ -156,6 +185,62 @@ app.post('/api/wechat/userinfo', (req, res) => {
     res.status(400).json({
       success: false,
       message: '解密用户信息失败',
+      error: error.message
+    });
+  }
+});
+
+// 通过 openid 更新用户资料（写入 user 表）
+app.put('/api/wechat/user', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const openid = body.openid;
+
+    if (!openid || !String(openid).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少 openid'
+      });
+    }
+
+    const openidTrimmed = String(openid).trim();
+    const existing = await UserRepository.findByOpenid(openidTrimmed);
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在，请先登录'
+      });
+    }
+
+    const updateData = {};
+    for (var i = 0; i < USER_UPDATABLE_FIELDS.length; i++) {
+      var key = USER_UPDATABLE_FIELDS[i];
+      if (body[key] !== undefined) {
+        updateData[key] = body[key];
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          '请至少提供一个可更新字段：nickname, avatar_url, gender, country, province, city, language'
+      });
+    }
+
+    var changed = await UserRepository.update(openidTrimmed, updateData);
+    var updated = await UserRepository.findByOpenid(openidTrimmed);
+
+    res.json({
+      success: true,
+      message: changed ? '更新成功' : '未修改（与当前资料一致）',
+      data: userToPublicResponse(updated)
+    });
+  } catch (error) {
+    console.error('更新用户资料错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '服务器内部错误',
       error: error.message
     });
   }
@@ -519,6 +604,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, async () => {
   console.log(`服务器运行在端口 ${PORT}`);
   console.log(`微信登录接口: POST http://localhost:${PORT}/api/wechat/login`);
+  console.log(`更新用户资料: PUT http://localhost:${PORT}/api/wechat/user`);
   console.log(`记录接口: POST http://localhost:${PORT}/api/record`);
   console.log(`查询记录接口: GET http://localhost:${PORT}/api/records`);
   console.log(`设备: GET http://localhost:${PORT}/api/devices | GET http://localhost:${PORT}/api/devices/:deviceId`);
