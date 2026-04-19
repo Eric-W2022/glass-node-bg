@@ -7,14 +7,33 @@ const RecordRepository = require('./src/repositories/RecordRepository');
 const DeviceRepository = require('./src/repositories/DeviceRepository');
 const { testConnection } = require('./src/config/database');
 
-function deviceToResponse(device) {
+/** 小程序 parseDeviceData：只依赖 device_id、warning_distance_cm、reminder_mode（数字） */
+function deviceClientPayload(device) {
   if (!device) return null;
+  var wd = Number(device.warning_distance_cm);
+  var rm = Number(device.reminder_mode);
+  if (!Number.isFinite(wd) || wd < 0) wd = 0;
+  if (!Number.isFinite(rm)) rm = 0;
   return {
-    device_id: device.device_id,
-    warning_distance_cm: device.warning_distance_cm,
-    reminder_mode: device.reminder_mode,
-    created_at: device.created_at,
-    updated_at: device.updated_at
+    device_id: device.device_id == null ? '' : String(device.device_id),
+    warning_distance_cm: wd,
+    reminder_mode: rm
+  };
+}
+
+/** 写入/单条查询成功：data 内三字段 + 顶层三字段（兼容 res.data.data.xxx 与 res.data.xxx） */
+function deviceWriteResponse(device, message) {
+  var payload = deviceClientPayload(device);
+  if (!payload) {
+    return { success: false, message: '设备数据异常' };
+  }
+  return {
+    success: true,
+    message: message,
+    data: payload,
+    device_id: payload.device_id,
+    warning_distance_cm: payload.warning_distance_cm,
+    reminder_mode: payload.reminder_mode
   };
 }
 
@@ -436,7 +455,7 @@ app.get('/api/devices', async (req, res) => {
       success: true,
       message: '查询成功',
       data: {
-        devices: devices.map(deviceToResponse),
+        devices: devices.map(deviceClientPayload),
         pagination: {
           currentPage: pageNum,
           totalPages,
@@ -476,11 +495,7 @@ app.get('/api/devices/:deviceId', async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      message: '查询成功',
-      data: deviceToResponse(device)
-    });
+    res.json(deviceWriteResponse(device, '查询成功'));
   } catch (error) {
     console.error('查询设备错误:', error);
     res.status(500).json({
@@ -547,11 +562,13 @@ app.post('/api/devices', async (req, res) => {
     }
 
     const device = await DeviceRepository.findByDeviceId(String(device_id).trim());
-    res.status(201).json({
-      success: true,
-      message: '设备添加成功',
-      data: deviceToResponse(device)
-    });
+    if (!device) {
+      return res.status(500).json({
+        success: false,
+        message: '创建成功但读取设备失败'
+      });
+    }
+    res.status(201).json(deviceWriteResponse(device, '设备添加成功'));
   } catch (error) {
     console.error('添加设备错误:', error);
     res.status(500).json({
@@ -617,11 +634,13 @@ app.put('/api/devices/:deviceId', async (req, res) => {
     }
 
     const device = await DeviceRepository.findByDeviceId(id);
-    res.json({
-      success: true,
-      message: '更新成功',
-      data: deviceToResponse(device)
-    });
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        message: '设备不存在或已删除'
+      });
+    }
+    res.json(deviceWriteResponse(device, '更新成功'));
   } catch (error) {
     console.error('更新设备错误:', error);
     res.status(500).json({
